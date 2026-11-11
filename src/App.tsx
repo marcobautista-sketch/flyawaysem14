@@ -3,6 +3,7 @@ import Navbar from './components/Navbar'
 import ProtectedRoute from './components/ProtectedRoute'
 import BookingDetailPage from './pages/BookingDetailPage'
 import LoginPage from './pages/LoginPage'
+import MyBookingsPage from './pages/MyBookingsPage'
 import NotFoundPage from './pages/NotFoundPage'
 import RegisterPage from './pages/RegisterPage'
 import SearchPage from './pages/SearchPage'
@@ -18,7 +19,7 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/search" element={<SearchPage />} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/bookings" element={<h1 className="text-2xl font-bold text-blue-950">Mis reservas</h1>} />
+            <Route path="/bookings" element={<MyBookingsPage />} />
             <Route path="/bookings/:id" element={<BookingDetailPage />} />
           </Route>
           <Route path="*" element={<NotFoundPage />} />
