@@ -9,4 +9,16 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// El backend responde 403 cuando falta el token o ya no es válido
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (axios.isAxiosError(error) && error.response?.status === 403) {
+      localStorage.removeItem('token')
+      if (window.location.pathname !== '/login') window.location.href = '/login'
+    }
+    return Promise.reject(error)
+  },
+)
+
 export default api
