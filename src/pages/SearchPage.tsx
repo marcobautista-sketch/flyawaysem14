@@ -1,18 +1,28 @@
 import { useEffect, useState, type ChangeEvent, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import Alert from '../components/Alert'
 import FlightTable from '../components/FlightTable'
 import FormField from '../components/FormField'
-import { searchFlights, type FlightFilters } from '../services/flightService'
+import { useAuth } from '../hooks/useAuth'
+import { bookFlight, searchFlights, type FlightFilters } from '../services/flightService'
 import type { Flight } from '../types'
+import { saveBookingId } from '../utils/bookingStorage'
 import { errorMessage } from '../utils/errors'
 
 const emptyFilters: FlightFilters = { flightNumber: '', airlineName: '', from: '', to: '' }
 
+type BookingResult =
+  | { ok: true; flightNumber: string; bookingId: number }
+  | { ok: false; flightNumber: string; message: string }
+
 export default function SearchPage() {
+  const { token, user } = useAuth()
   const [filters, setFilters] = useState(emptyFilters)
   const [flights, setFlights] = useState<Flight[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [bookingFlightId, setBookingFlightId] = useState<number | null>(null)
+  const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
 
   // Al entrar a la página se listan todos los vuelos
   useEffect(() => {
@@ -46,6 +56,22 @@ export default function SearchPage() {
       setFlights([])
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleBook(flight: Flight) {
+    setBookingFlightId(flight.id)
+    setBookingResult(null)
+    try {
+      const bookingId = await bookFlight(flight.id)
+      if (user) saveBookingId(user.email, bookingId)
+      setBookingResult({ ok: true, flightNumber: flight.flightNumber, bookingId })
+      // La reserva ocupa un asiento: se actualiza la tabla sin volver a buscar
+      setFlights((current) => current.map((f) => (f.id === flight.id ? { ...f, availableSeats: f.availableSeats - 1 } : f)))
+    } catch (err) {
+      setBookingResult({ ok: false, flightNumber: flight.flightNumber, message: errorMessage(err) })
+    } finally {
+      setBookingFlightId(null)
     }
   }
 
@@ -89,6 +115,48 @@ export default function SearchPage() {
 
       {error && <Alert type="error">{error}</Alert>}
 
+      {!token && (
+        <Alert type="info">
+          <Link to="/login" state={{ from: '/search' }} className="font-semibold underline">
+            Inicia sesión
+          </Link>{' '}
+          para reservar un vuelo.
+        </Alert>
+      )}
+
+      {bookingResult && (
+        <div className="sticky top-2 z-10 shadow-sm">
+          {bookingResult.ok ? (
+            <Alert type="success">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  ¡Reserva confirmada! Vuelo <strong>{bookingResult.flightNumber}</strong>, ID de reserva <strong>#{bookingResult.bookingId}</strong>.
+                </span>
+                <span className="flex gap-3">
+                  <Link to={`/bookings/${bookingResult.bookingId}`} className="font-semibold underline">
+                    Ver detalle
+                  </Link>
+                  <button type="button" onClick={() => setBookingResult(null)} className="font-semibold">
+                    Cerrar
+                  </button>
+                </span>
+              </div>
+            </Alert>
+          ) : (
+            <Alert type="error">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  No se pudo reservar el vuelo <strong>{bookingResult.flightNumber}</strong>: {bookingResult.message}
+                </span>
+                <button type="button" onClick={() => setBookingResult(null)} className="font-semibold">
+                  Cerrar
+                </button>
+              </div>
+            </Alert>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <p className="text-sm text-slate-500">Buscando vuelos...</p>
       ) : (
@@ -103,7 +171,7 @@ export default function SearchPage() {
             <p className="text-sm text-slate-600">
               {flights.length} {flights.length === 1 ? 'vuelo encontrado' : 'vuelos encontrados'}
             </p>
-            <FlightTable flights={flights} />
+            <FlightTable flights={flights} onBook={token ? handleBook : undefined} bookingFlightId={bookingFlightId} />
           </div>
         ))
       )}

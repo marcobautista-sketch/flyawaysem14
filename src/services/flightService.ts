@@ -1,5 +1,5 @@
 import api from '../api'
-import type { Flight } from '../types'
+import type { Booking, Flight, NewIdResponse } from '../types'
 
 export interface FlightFilters {
   flightNumber: string
@@ -19,4 +19,15 @@ export async function searchFlights(filters: FlightFilters) {
     },
   })
   return response.data.items
+}
+
+// Devuelve el ID de la reserva creada
+export async function bookFlight(flightId: number) {
+  const response = await api.post<NewIdResponse>('/flights/book', { flightId })
+  return response.data.id
+}
+
+export async function getBooking(bookingId: number) {
+  const response = await api.get<Booking>(`/flights/book/${bookingId}`)
+  return response.data
 }
