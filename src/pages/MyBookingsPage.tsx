@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
-import { getBooking } from '../services/flightService'
+import { getMyBookings } from '../services/flightService'
 import type { Booking } from '../types'
-import { getBookingIds } from '../utils/bookingStorage'
 import { formatDateTime } from '../utils/format'
 
 export default function MyBookingsPage() {
@@ -14,16 +13,9 @@ export default function MyBookingsPage() {
   useEffect(() => {
     if (!user) return
     let active = true
-    const ids = getBookingIds(user.email)
-
-    // allSettled ignora los IDs que ya no existen (por ejemplo, si se reinició el backend)
-    Promise.allSettled(ids.map((id) => getBooking(id))).then((results) => {
+    getMyBookings(user).then((found) => {
       if (!active) return
-      const found = results
-        .filter((result): result is PromiseFulfilledResult<Booking> => result.status === 'fulfilled')
-        .map((result) => result.value)
-        .sort((a, b) => a.estDepartureTime.localeCompare(b.estDepartureTime))
-      setBookings(found)
+      setBookings(found.sort((a, b) => a.estDepartureTime.localeCompare(b.estDepartureTime)))
       setLoading(false)
     })
     return () => {

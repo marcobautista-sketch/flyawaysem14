@@ -4,7 +4,7 @@ import Alert from '../components/Alert'
 import FlightTable from '../components/FlightTable'
 import FormField from '../components/FormField'
 import { useAuth } from '../hooks/useAuth'
-import { bookFlight, searchFlights, type FlightFilters } from '../services/flightService'
+import { bookFlight, getMyBookings, searchFlights, type FlightFilters } from '../services/flightService'
 import type { Flight } from '../types'
 import { saveBookingId } from '../utils/bookingStorage'
 import { errorMessage } from '../utils/errors'
@@ -23,6 +23,19 @@ export default function SearchPage() {
   const [error, setError] = useState('')
   const [bookingFlightId, setBookingFlightId] = useState<number | null>(null)
   const [bookingResult, setBookingResult] = useState<BookingResult | null>(null)
+  const [bookedFlightIds, setBookedFlightIds] = useState<Set<number>>(new Set())
+
+  // El backend deja reservar el mismo vuelo varias veces, así que se marcan los que ya reservaste
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    getMyBookings(user).then((mine) => {
+      if (active) setBookedFlightIds(new Set(mine.map((booking) => booking.flightId)))
+    })
+    return () => {
+      active = false
+    }
+  }, [user])
 
   // Al entrar a la página se listan todos los vuelos
   useEffect(() => {
@@ -60,12 +73,14 @@ export default function SearchPage() {
   }
 
   async function handleBook(flight: Flight) {
+    if (bookedFlightIds.has(flight.id)) return
     setBookingFlightId(flight.id)
     setBookingResult(null)
     try {
       const bookingId = await bookFlight(flight.id)
       if (user) saveBookingId(user.email, bookingId)
       setBookingResult({ ok: true, flightNumber: flight.flightNumber, bookingId })
+      setBookedFlightIds((current) => new Set(current).add(flight.id))
       // La reserva ocupa un asiento: se actualiza la tabla sin volver a buscar
       setFlights((current) => current.map((f) => (f.id === flight.id ? { ...f, availableSeats: f.availableSeats - 1 } : f)))
     } catch (err) {
@@ -171,7 +186,12 @@ export default function SearchPage() {
             <p className="text-sm text-slate-600">
               {flights.length} {flights.length === 1 ? 'vuelo encontrado' : 'vuelos encontrados'}
             </p>
-            <FlightTable flights={flights} onBook={token ? handleBook : undefined} bookingFlightId={bookingFlightId} />
+            <FlightTable
+              flights={flights}
+              onBook={token ? handleBook : undefined}
+              bookingFlightId={bookingFlightId}
+              bookedFlightIds={bookedFlightIds}
+            />
           </div>
         ))
       )}

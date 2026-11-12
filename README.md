@@ -39,7 +39,7 @@ Para probar sin registrarte puedes usar la cuenta `ana.garcia@utec.edu.pe` con l
 | Registro | `/register` | Valida campos vacíos, muestra los errores del backend y, si todo sale bien, muestra un mensaje y lleva al login. |
 | Login | `/login` | Guarda el token en `localStorage`, muestra el error si las credenciales no son válidas y redirige a la búsqueda. El nombre del usuario aparece en la barra de navegación. |
 | Búsqueda | `/search` | Filtra por número de vuelo, aerolínea y rango de fechas de salida. Muestra un mensaje cuando no hay resultados. |
-| Reserva | `/search` | Botón "Reservar" en cada vuelo, visible solo con sesión iniciada. Muestra el ID de la reserva o el error del backend (vuelo pasado, horario superpuesto). |
+| Reserva | `/search` | Botón "Reservar" en cada vuelo, visible solo con sesión iniciada. Muestra el ID de la reserva o el error del backend (vuelo pasado, horario superpuesto). Los vuelos que ya reservaste aparecen como "Reservado" para no duplicar la reserva. |
 | Detalle de reserva | `/bookings/:id` | Muestra los datos de una reserva. Ruta protegida. |
 | Mis reservas | `/bookings` | Lista las reservas del usuario a partir de los IDs guardados en `localStorage`. Ruta protegida. |
 | Cerrar sesión | barra de navegación | Borra el token y vuelve al login. |

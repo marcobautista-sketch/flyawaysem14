@@ -1,5 +1,6 @@
 import api from '../api'
-import type { Booking, Flight, NewIdResponse } from '../types'
+import type { Booking, Flight, NewIdResponse, User } from '../types'
+import { getBookingIds } from '../utils/bookingStorage'
 
 export interface FlightFilters {
   flightNumber: string
@@ -30,4 +31,14 @@ export async function bookFlight(flightId: number) {
 export async function getBooking(bookingId: number) {
   const response = await api.get<Booking>(`/flights/book/${bookingId}`)
   return response.data
+}
+
+// Reservas del usuario a partir de los IDs guardados en localStorage.
+// allSettled ignora los IDs que ya no existen (por ejemplo, si se reinició el backend)
+export async function getMyBookings(user: User) {
+  const results = await Promise.allSettled(getBookingIds(user.email).map((id) => getBooking(id)))
+  return results
+    .filter((result): result is PromiseFulfilledResult<Booking> => result.status === 'fulfilled')
+    .map((result) => result.value)
+    .filter((booking) => booking.customerId === user.id)
 }
